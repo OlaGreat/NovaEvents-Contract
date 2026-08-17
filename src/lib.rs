@@ -1,9 +1,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype,
-    token::Client as TokenClient,
-    Address, Env, String, Vec,
+    contract, contractimpl, contracttype, token::Client as TokenClient, Address, Env, String, Vec,
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -74,6 +72,7 @@ pub struct Sponsorship {
 
 #[contracttype]
 pub enum DataKey {
+    Admin,
     Token,
     EventCounter,
     Event(u32),
@@ -90,11 +89,14 @@ pub struct NovaEventsContract;
 
 #[contractimpl]
 impl NovaEventsContract {
-    /// One-time setup: record the USDC token contract address.
-    pub fn initialize(env: Env, token: Address) {
+    /// One-time setup: authorize an admin and record the USDC token contract address.
+    pub fn initialize(env: Env, admin: Address, token: Address) {
+        admin.require_auth();
+
         if env.storage().instance().has(&DataKey::Token) {
             panic!("already initialized");
         }
+        env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Token, &token);
         env.storage().instance().set(&DataKey::EventCounter, &0u32);
     }

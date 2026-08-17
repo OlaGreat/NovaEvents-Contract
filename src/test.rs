@@ -7,7 +7,14 @@ use soroban_sdk::{
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-fn setup(env: &Env) -> (Address, StellarAssetClient, Address, NovaEventsContractClient) {
+fn setup(
+    env: &Env,
+) -> (
+    Address,
+    StellarAssetClient,
+    Address,
+    NovaEventsContractClient,
+) {
     let token_admin = Address::generate(env);
     let token_contract = env.register_stellar_asset_contract_v2(token_admin.clone());
     let token_addr = token_contract.address();
@@ -15,7 +22,8 @@ fn setup(env: &Env) -> (Address, StellarAssetClient, Address, NovaEventsContract
 
     let contract_id = env.register(NovaEventsContract, ());
     let client = NovaEventsContractClient::new(env, &contract_id);
-    client.initialize(&token_addr);
+    let admin = Address::generate(env);
+    client.initialize(&admin, &token_addr);
 
     (token_addr, token_admin_client, contract_id, client)
 }
@@ -36,11 +44,7 @@ fn default_tiers(env: &Env) -> Vec<TierInput> {
     ]
 }
 
-fn create_test_event(
-    env: &Env,
-    client: &NovaEventsContractClient,
-    organizer: &Address,
-) -> u32 {
+fn create_test_event(env: &Env, client: &NovaEventsContractClient, organizer: &Address) -> u32 {
     client.create_event(
         organizer,
         &String::from_str(env, "Stellar Summit"),
@@ -376,8 +380,26 @@ fn test_double_initialize_rejected() {
     let (token_addr, _, _, client) = setup(&env);
 
     // setup() already called initialize once; a second call must fail
-    let result = client.try_initialize(&token_addr);
+    let admin = Address::generate(&env);
+    let result = client.try_initialize(&admin, &token_addr);
     assert!(result.is_err());
+}
+
+#[test]
+#[should_panic]
+fn test_initialize_requires_admin_auth() {
+    let env = Env::default();
+    // Deliberately not mocking auths — admin.require_auth() must reject this call.
+
+    let token_admin = Address::generate(&env);
+    let token_contract = env.register_stellar_asset_contract_v2(token_admin.clone());
+    let token_addr = token_contract.address();
+
+    let contract_id = env.register(NovaEventsContract, ());
+    let client = NovaEventsContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.initialize(&admin, &token_addr);
 }
 
 #[test]
@@ -431,7 +453,7 @@ fn test_get_balance_reflects_ticket_and_sponsor_payments() {
     let buyer = Address::generate(&env);
     let sponsor = Address::generate(&env);
 
-    token_admin.mint(&buyer, &100_000_000_i128);   // 10 USDC
+    token_admin.mint(&buyer, &100_000_000_i128); // 10 USDC
     token_admin.mint(&sponsor, &500_000_000_i128); // 50 USDC
 
     let event_id = create_test_event(&env, &client, &organizer);

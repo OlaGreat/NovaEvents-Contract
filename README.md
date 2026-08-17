@@ -130,7 +130,7 @@ stellar contract deploy \
 
 | Function | Parameters | Returns | Description |
 |----------|------------|---------|--------------|
-| `initialize` | `token: Address` | — | One-time setup; records the USDC token contract address |
+| `initialize` | `admin: Address, token: Address` | — | One-time setup; requires `admin` auth, records the admin and the USDC token contract address |
 | `create_event` | `organizer: Address, name: String, description: String, venue: String, date_unix: u64, funding_goal: i128, tiers: Vec<TierInput>` | `u32` (event ID) | Organizer creates a new event with one or more ticket tiers |
 | `buy_ticket` | `buyer: Address, event_id: u32, tier_index: u32` | `u32` (ticket ID) | Buyer purchases a ticket in a given tier, paying `tier.price` USDC |
 | `redeem_ticket` | `organizer: Address, event_id: u32, ticket_id: u32` | — | Organizer checks in (redeems) a ticket at the door |

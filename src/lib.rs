@@ -103,6 +103,9 @@ impl NovaEventsContract {
 
     /// Organizer creates a new event with one or more ticket tiers.
     /// Returns the new event ID.
+    // Each parameter is an independent required field on a Soroban entrypoint;
+    // bundling them into a struct would be a breaking ABI change tracked separately.
+    #[allow(clippy::too_many_arguments)]
     pub fn create_event(
         env: Env,
         organizer: Address,
@@ -212,7 +215,7 @@ impl NovaEventsContract {
         let token_addr: Address = env.storage().instance().get(&DataKey::Token).unwrap();
         TokenClient::new(&env, &token_addr).transfer(
             &buyer,
-            &env.current_contract_address(),
+            env.current_contract_address(),
             &price,
         );
 
@@ -311,7 +314,7 @@ impl NovaEventsContract {
         let token_addr: Address = env.storage().instance().get(&DataKey::Token).unwrap();
         TokenClient::new(&env, &token_addr).transfer(
             &sponsor,
-            &env.current_contract_address(),
+            env.current_contract_address(),
             &amount,
         );
 
